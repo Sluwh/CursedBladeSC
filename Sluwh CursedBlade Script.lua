@@ -1,8 +1,8 @@
 --[[ 
     SLUWH CURSED BLADE SCRIPT - KAVO UI EDITION
     Credits: Sluwh
-    Kavo UI: Altamente optimizada, botones pequeños, 100% compatible.
-    TECLA PARA OCULTAR/MOSTRAR: RightShift (Shift Derecho)
+    Kavo UI: Highly optimized, small buttons, 100% compatible.
+    TOGGLE KEY: RightShift (Right Shift)
 ]]
 
 local Players = game:GetService("Players")
@@ -103,68 +103,70 @@ end
 -- =========================
 local FarmingSec1 = FarmingTab:NewSection("Auto Combat")
 
-FarmingSec1:NewToggle("Auto Farm (Mob Pull)", "Atrae los mobs hacia ti.", function(state)
+FarmingSec1:NewToggle("Auto Farm (Mob Pull)", "Pulls mobs to your position.", function(state)
     _G.AutoFarmEnabled = state
 end)
 
-FarmingSec1:NewToggle("Auto Kill (Attack Engine)", "Sistema de daño multi-hit ultra rápido.", function(state)
+FarmingSec1:NewToggle("Auto Kill (Attack Engine)", "Ultra fast multi-hit damage system.", function(state)
     _G.SkillRemoteEnabled = state
 end)
 
 local FarmingSec2 = FarmingTab:NewSection("Loot & Extras")
 
-FarmingSec2:NewToggle("Auto Loot (Magnet)", "Imanta todo el botín.", function(state)
+FarmingSec2:NewToggle("Auto Loot (Magnet)", "Magnets all dropped loot.", function(state)
     _G.AutoLootEnabled = state
 end)
 
-FarmingSec2:NewToggle("Auto Sell (Batch 1-100)", "Vende todo cada 30 segundos automáticamente.", function(state)
+FarmingSec2:NewToggle("Auto Sell (Batch 1-100)", "Automatically sells items every 30 seconds.", function(state)
     _G.RemoteSpamEnabled = state
 end)
 
-FarmingSec2:NewToggle("Hitbox Expander (Big Mobs)", "Agranda a los enemigos para hitbox infinita.", function(state)
+FarmingSec2:NewToggle("Hitbox Expander (Big Mobs)", "Expands enemies for an infinite hitbox.", function(state)
     _G.HitboxEnabled = state
 end)
 
 -- =========================
 -- BUFFS TAB INTERFACE
 -- =========================
-local BuffSec1 = BuffsTab:NewSection("Damage Buff (ID: 1004)")
 
-BuffSec1:NewTextBox("Multiplier Value", "Presiona ENTER al terminar", function(txt)
+local WarningSec = BuffsTab:NewSection("⚠️ YOU MUST PRESS ENTER ON TEXTBOXES TO SAVE ⚠️")
+
+local BuffSec1 = BuffsTab:NewSection("Damage Buff")
+BuffSec1:NewTextBox("Multiplier Value", "Press ENTER when done typing", function(txt)
     BuffVars.DamageValue = txt
 end)
-BuffSec1:NewTextBox("Duration", "Presiona ENTER al terminar", function(txt)
+BuffSec1:NewTextBox("Duration", "Press ENTER when done typing", function(txt)
     BuffVars.DamageDuration = txt
 end)
-BuffSec1:NewButton("Apply Damage Buff", "Aplica el daño extremo.", function()
+BuffSec1:NewButton("Apply Damage Buff", "Applies extreme damage.", function()
     local dV = tonumber(BuffVars.DamageValue) or 222222222222222.54
     local dur = tonumber(BuffVars.DamageDuration) or 12.036
     pcall(function() player.Character.NetMessage.AddBuff:FireServer(1004, {[1] = dV}, nil, dur) end)
 end)
 
-local BuffSec2 = BuffsTab:NewSection("Health Buff (ID: 2002)")
-BuffSec2:NewTextBox("Health Duration", "Presiona ENTER al terminar", function(txt)
+local BuffSec2 = BuffsTab:NewSection("Health Buff")
+BuffSec2:NewTextBox("Health Duration", "Press ENTER when done typing", function(txt)
     BuffVars.HealthDuration = txt
 end)
-BuffSec2:NewButton("Instantly Max Health", "Te da tu vida completa.", function()
+BuffSec2:NewButton("Instantly Max Health", "Heals you to full health.", function()
     local dur = tonumber(BuffVars.HealthDuration) or 12.036
     pcall(function() player.Character.NetMessage.AddBuff:FireServer(2002, {[1] = 222222222222222.54}, nil, dur) end)
 end)
 
-local BuffSec3 = BuffsTab:NewSection("Critical Buff (ID: 2010)")
-BuffSec3:NewTextBox("Crit Duration", "Presiona ENTER al terminar", function(txt)
+local BuffSec3 = BuffsTab:NewSection("Critical Buff")
+BuffSec3:NewTextBox("Crit Duration", "Press ENTER when done typing", function(txt)
     BuffVars.CritDuration = txt
 end)
-BuffSec3:NewButton("Super Crit Buff", "Incrementa la chance de crit al 65%.", function()
+BuffSec3:NewButton("Super Crit Buff", "Increases crit chance to 65%.", function()
     local dur = tonumber(BuffVars.CritDuration) or 12.036
     pcall(function() player.Character.NetMessage.AddBuff:FireServer(2010, {[1] = 223333}, nil, dur) end)
 end)
 
 local BuffSec4 = BuffsTab:NewSection("Manual Buff Tool")
-BuffSec4:NewTextBox("Buff ID", "Presiona ENTER al terminar", function(txt) BuffVars.CustomID = txt end)
-BuffSec4:NewTextBox("Buff Value", "Presiona ENTER al terminar", function(txt) BuffVars.CustomVal = txt end)
-BuffSec4:NewTextBox("Buff Duration", "Presiona ENTER al terminar", function(txt) BuffVars.CustomDur = txt end)
-BuffSec4:NewButton("Apply Manual Buff", "Inyecta el buff personalizado.", function()
+BuffSec4:NewTextBox("Buff ID", "Press ENTER when done typing", function(txt) BuffVars.CustomID = txt end)
+BuffSec4:NewTextBox("Buff Value", "Press ENTER when done typing", function(txt) BuffVars.CustomVal = txt end)
+BuffSec4:NewTextBox("Buff Duration", "Press ENTER when done typing", function(txt) BuffVars.CustomDur = txt end)
+BuffSec4:NewButton("Apply Manual Buff", "Inject custom buff ID.", function()
     pcall(function()
         player.Character.NetMessage.AddBuff:FireServer(tonumber(BuffVars.CustomID), {[1] = tonumber(BuffVars.CustomVal)}, nil, tonumber(BuffVars.CustomDur))
     end)
@@ -175,22 +177,22 @@ end)
 -- =========================
 local SetSec1 = SettingsTab:NewSection("Attack Speed Configurations")
 
-SetSec1:NewSlider("Attack Delay (ms)", "Menor número = mayor velocidad (bajan los FPS).", 500, 10, function(s)
+SetSec1:NewSlider("Attack Delay (ms)", "Lower number = faster speed (drops FPS).", 500, 10, function(s)
     Settings.AttackDelay = s / 1000
 end)
 
-SetSec1:NewSlider("Hits Per Cycle", "Cantidad de golpes por ciclo (Default 5).", 100, 1, function(s)
+SetSec1:NewSlider("Hits Per Cycle", "Amount of hits per cycle (Default 5).", 100, 1, function(s)
     Settings.HitsPerTarget = s
 end)
 
 local SetSec2 = SettingsTab:NewSection("Ranges Configurations")
 
-SetSec2:NewSlider("Pull Distance", "Distancia a la que se atraen los mobs.", 30, 1, function(s)
+SetSec2:NewSlider("Pull Distance", "Distance at which mobs are pulled.", 30, 1, function(s)
     Settings.PullDistance = s
 end)
 
--- Botón de emergencia para desactivarlo todo si te lageas
-SetSec2:NewButton("PANIC / STOP ALL", "Desactiva los auto farm y scripts repetitivos.", function()
+-- Emergency Stop
+SetSec2:NewButton("PANIC / STOP ALL", "Disables auto farm and all repetitive scripts.", function()
     _G.AutoFarmEnabled = false
     _G.SkillRemoteEnabled = false
     _G.AutoLootEnabled = false
