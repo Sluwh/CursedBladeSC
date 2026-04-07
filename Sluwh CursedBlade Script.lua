@@ -267,12 +267,26 @@ safeLoop(1, function()
 end)
 
 -- Sell & Refresh System
-safeLoop(30, function()
-    if _G.RemoteSpamEnabled and setState then
-        setState:FireServer("action", true)
-        task.wait(0.1)
-        sellRemote:FireServer(539767613, SELL_PAYLOAD)
-        setState:FireServer("action", false)
+local function doSell()
+    if not setState then return end
+
+    setState:FireServer("action", true)
+    task.wait(0.05)
+    setState:FireServer("action", false)
+    sellRemote:FireServer(539767613, SELL_PAYLOAD)
+end
+
+task.spawn(function()
+    while not _G.ScriptDestroyed do
+        if _G.RemoteSpamEnabled then
+            doSell()
+            task.wait(30)
+        else
+            task.wait(0.5)
+        end
     end
+end)
+
+safeLoop(30, function()
     updateMobs()
 end)
