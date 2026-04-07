@@ -78,6 +78,7 @@ local Settings = {
     PullDistance = 8,
     HitboxSize = 1000,
     LootRange = 400,
+    WalkSpeed = 16,
 }
 
 local BuffVars = {
@@ -235,6 +236,12 @@ SetSec2:NewSlider("Pull Distance", "Distance at which mobs are pulled.", 30, 1, 
     Settings.PullDistance = s
 end)
 
+local SetSec3 = SettingsTab:NewSection("Player Configurations")
+
+SetSec3:NewSlider("Movement Speed", "Changes your character's WalkSpeed.", 200, 16, function(s)
+    Settings.WalkSpeed = s
+end)
+
 -- Emergency Stop
 SetSec2:NewButton("PANIC / STOP ALL", "Disables auto farm and all repetitive scripts.", function()
     _G.AutoFarmEnabled = false
@@ -249,7 +256,18 @@ end)
 
 -- Heartbeat Mob Pull
 RunService.Heartbeat:Connect(function()
-    if _G.ScriptDestroyed or not _G.AutoFarmEnabled or not hrp then return end
+    if _G.ScriptDestroyed then return end
+    
+    if Settings.WalkSpeed and Settings.WalkSpeed ~= 16 then
+        if player.Character then
+            local hum = player.Character:FindFirstChild("Humanoid")
+            if hum then
+                hum.WalkSpeed = Settings.WalkSpeed
+            end
+        end
+    end
+
+    if not _G.AutoFarmEnabled or not hrp then return end
     local targetCF = hrp.CFrame * CFrame.new(0, 2, -Settings.PullDistance)
     local range = Settings.DetectionRange
     local pPos = hrp.Position
