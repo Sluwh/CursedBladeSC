@@ -73,6 +73,7 @@ _G.SkillRemoteEnabled = false
 _G.AutoLootEnabled    = false
 _G.AutoChestEnabled   = false
 _G.AutoFlyEnabled     = false
+_G.AutoBowEnabled     = false
 _G.NoclipEnabled      = false
 _G.WayPoint1 = nil
 _G.WayPoint2 = nil
@@ -140,6 +141,15 @@ FarmingTab:CreateToggle({
     Flag         = "AutoKill",
     Callback     = function(state)
         _G.SkillRemoteEnabled = state
+    end,
+})
+
+FarmingTab:CreateToggle({
+    Name         = "Auto Bow Attack",
+    CurrentValue = false,
+    Flag         = "AutoBow",
+    Callback     = function(state)
+        _G.AutoBowEnabled = state
     end,
 })
 
@@ -446,6 +456,7 @@ SettingsTab:CreateButton({
     Callback = function()
         _G.AutoFarmEnabled    = false
         _G.SkillRemoteEnabled = false
+        _G.AutoBowEnabled     = false
         _G.AutoLootEnabled    = false
         _G.RemoteSpamEnabled  = false
         _G.AutoChestEnabled   = false
@@ -524,6 +535,17 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
+-- Bow Attack Helper
+local function bow(times)
+    for i = 1, times do
+        for _, entity in ipairs(entityFolder:GetChildren()) do
+            if entity:FindFirstChild("Collision") then
+                triggerSkill:FireServer(102, "Atk", entity.Collision, {})
+            end
+        end
+    end
+end
+
 -- Main Attack Executor
 task.spawn(function()
     while not _G.ScriptDestroyed do
@@ -541,6 +563,16 @@ task.spawn(function()
                 end
             end
             setState:FireServer("action", false)
+        end
+        task.wait(Settings.AttackDelay)
+    end
+end)
+
+-- Bow Attack Executor
+task.spawn(function()
+    while not _G.ScriptDestroyed do
+        if _G.AutoBowEnabled and triggerSkill then
+            bow(Settings.HitsPerTarget)
         end
         task.wait(Settings.AttackDelay)
     end
