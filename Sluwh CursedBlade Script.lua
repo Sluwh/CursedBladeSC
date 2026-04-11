@@ -1,8 +1,6 @@
---[[
-    NUEVOO.LUA - RAYFIELD EDITION
+    CATCH AND TAME! - RAYFIELD EDITION
     Author: Sluwh
     UI Library: Rayfield
-]]
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -49,8 +47,8 @@ local rarityFilters = {
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Custom Menu | Sluwh",
-    LoadingTitle = "Custom Menu",
+    Name = "Catch And Tame! | Sluwh",
+    LoadingTitle = "Catch And Tame!",
     LoadingSubtitle = "by Sluwh",
     ConfigurationSaving = {
         Enabled = false
