@@ -1,575 +1,671 @@
 --[[
-    CATCH AND TAME! - RAYFIELD EDITION
-    Author: Sluwh
-    UI Library: Rayfield
+    SLUWH CURSED BLADE SCRIPT - RAYFIELD EDITION
+    Credits: Sluwh
+    Rayfield UI: Clean, modern, fully compatible.
+    TOGGLE KEY: RightShift (Right Shift)
 ]]
+
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
--- =====================
--- // STATE VARIABLES
--- =====================
-local autoEnabled = false
-local autoclicking = false
-local clickCPS = 13
-local clickInterval = 1 / 13
-local clickAccum = 0
-
-local wsEnabled = false
-local walkSpeed = 16
-math.randomseed(tick())
-
-local flyEnabled = false
-local flySpeed = 5
-local noclipEnabled = false
-local infJumpEnabled = false
-
-local espEnabled = false
-local rarityFilters = {
-    ["Common"] = true,
-    ["Uncommon"] = true,
-    ["Rare"] = true,
-    ["Epic"] = true,
-    ["Legendary"] = true,
-    ["Mythical"] = true,
-    ["Boss"] = true,
-    ["Exclusive"] = true
-}
-
--- =====================
--- // UI INITIALIZATION
--- =====================
+-- =========================
+-- RAYFIELD UI INITIALIZATION
+-- =========================
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Catch And Tame! | Sluwh",
-    LoadingTitle = "Catch And Tame!",
+    Name = "Sluwh CursedBlade Script",
+    Icon = 0,
+    LoadingTitle = "Sluwh CursedBlade",
     LoadingSubtitle = "by Sluwh",
+    Theme = "Default",
+    DisableRayfieldPrompts = false,
+    DisableBuildWarnings = false,
     ConfigurationSaving = {
-        Enabled = false
+        Enabled = false,
     },
     Discord = {
-        Enabled = false
+        Enabled = false,
     },
-    KeySystem = false
+    KeySystem = false,
 })
 
-local MainTab = Window:CreateTab("Autoclicker", 4483362458)
-local MovementTab = Window:CreateTab("Movement", 4483362458)
-local ESPTab = Window:CreateTab("Pet ESP", 4483362458)
-local TPTab = Window:CreateTab("Teleports", 4483362458)
-local MiscTab = Window:CreateTab("Misc", 4483362458)
+-- =========================
+-- TABS
+-- =========================
+local FarmingTab = Window:CreateTab("Farming", 4483362458)
+local BuffsTab   = Window:CreateTab("Buffs",   4483362458)
+local SettingsTab = Window:CreateTab("Config", 4483362458)
 
--- =====================
--- // AUTOCLICKER TAB
--- =====================
-MainTab:CreateSection("Autoclicker (Lasso-Auto)")
-
-local statusLabel = MainTab:CreateLabel("Status: Waiting for lasso...", 4483362458)
-
-MainTab:CreateToggle({
-    Name = "Enable Autoclicker",
-    CurrentValue = false,
-    Flag = "AutoClickToggle",
-    Callback = function(Value)
-        autoEnabled = Value
-        if not autoEnabled then
-            autoclicking = false
-            clickAccum = 0
-            statusLabel:Set("Status: Disabled")
-        else
-            statusLabel:Set("Status: Waiting for lasso...")
-        end
-    end,
-})
-
-MainTab:CreateSlider({
-    Name = "Click Speed (CPS)",
-    Range = {1, 20},
-    Increment = 1,
-    Suffix = "CPS",
-    CurrentValue = 13,
-    Flag = "CPSSlider",
-    Callback = function(Value)
-        clickCPS = Value
-        clickInterval = 1 / clickCPS
-    end,
-})
-
--- =====================
--- // MOVEMENT TAB
--- =====================
-MovementTab:CreateSection("Character Enhancements")
-
-MovementTab:CreateToggle({
-    Name = "Enable WalkSpeed",
-    CurrentValue = false,
-    Flag = "WSToggle",
-    Callback = function(Value)
-        wsEnabled = Value
-        if not wsEnabled then
-            local char = player.Character
-            if char then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum then hum.WalkSpeed = 16 end
-            end
-        end
-    end,
-})
-
-MovementTab:CreateSlider({
-    Name = "WalkSpeed Value",
-    Range = {16, 100},
-    Increment = 1,
-    Suffix = "Studs",
-    CurrentValue = 16,
-    Flag = "WSSlider",
-    Callback = function(Value)
-        walkSpeed = Value
-    end,
-})
-
-MovementTab:CreateSection("Flight & Physics")
-
-MovementTab:CreateToggle({
-    Name = "Enable Fly",
-    CurrentValue = false,
-    Flag = "FlyToggle",
-    Callback = function(Value)
-        flyEnabled = Value
-        if flyEnabled then
-            IY_startFly()
-        else
-            IY_stopFly()
-        end
-    end,
-})
-
-MovementTab:CreateSlider({
-    Name = "Fly Speed",
-    Range = {1, 10},
-    Increment = 1,
-    Suffix = "x",
-    CurrentValue = 5,
-    Flag = "FlySlider",
-    Callback = function(Value)
-        flySpeed = Value
-    end,
-})
-
-MovementTab:CreateToggle({
-    Name = "Noclip",
-    CurrentValue = false,
-    Flag = "NoclipToggle",
-    Callback = function(Value)
-        noclipEnabled = Value
-    end,
-})
-
-MovementTab:CreateToggle({
-    Name = "Infinite Jump",
-    CurrentValue = false,
-    Flag = "InfJumpToggle",
-    Callback = function(Value)
-        infJumpEnabled = Value
-    end,
-})
-
--- =====================
--- // ESP TAB
--- =====================
-ESPTab:CreateSection("Pet ESP Options")
-
-ESPTab:CreateToggle({
-    Name = "Enable Pet ESP",
-    CurrentValue = false,
-    Flag = "ESPToggle",
-    Callback = function(Value)
-        espEnabled = Value
-        if espEnabled then
-            startESP()
-        else
-            stopESP()
-        end
-    end,
-})
-
-ESPTab:CreateSection("Rarity Filters")
-
-for rarity, _ in pairs(rarityFilters) do
-    ESPTab:CreateToggle({
-        Name = rarity .. " Rarity",
-        CurrentValue = true,
-        Flag = "Filter_" .. rarity,
-        Callback = function(Value)
-            rarityFilters[rarity] = Value
-            if espEnabled then
-                clearAllESP()
-                scanAndTag()
-            end
-        end,
-    })
-end
-
--- =====================
--- // TELEPORTS TAB
--- =====================
-TPTab:CreateSection("Quick Locations")
-
-local locations = {
-    { name = "Dragon Island",     pos = Vector3.new(5, 823, -3059) },
-    { name = "Bee Island",        pos = Vector3.new(106, 14, -1142)  },
-    { name = "Forgotten Depths",  pos = Vector3.new(10, 6, -4984)    },
-    { name = "Home Island",       pos = Vector3.new(0, 17, -2891)    },
+-- =========================
+-- MASTER SETTINGS & STATE
+-- =========================
+local Settings = {
+    AttackDelay    = 0.05,
+    HitsPerTarget  = 5,
+    DetectionRange = 250,
+    PullDistance   = 8,
+    HitboxSize     = 1000,
+    LootRange      = 400,
+    WalkSpeed      = 16,
+    FlyHeight      = 50,
+    FlySpeed       = 50,
 }
 
-for _, loc in ipairs(locations) do
-    TPTab:CreateButton({
-        Name = "Teleport to " .. loc.name,
-        Callback = function()
-            local char = player.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                char.HumanoidRootPart.CFrame = CFrame.new(loc.pos)
-            end
-        end,
-    })
+local BuffVars = {
+    DamageValue   = "222222222222222.54",
+    DamageDuration = "12.036",
+    HealthDuration = "12.036",
+    CritDuration   = "12.036",
+    CustomID  = "1004",
+    CustomVal = "1",
+    CustomDur = "60"
+}
+
+_G.ScriptDestroyed    = false
+_G.AutoFarmEnabled    = false
+_G.RemoteSpamEnabled  = false
+_G.HitboxEnabled      = false
+_G.SkillRemoteEnabled = false
+_G.AutoLootEnabled    = false
+_G.AutoChestEnabled   = false
+_G.AutoFlyEnabled     = false
+_G.AutoBowEnabled     = false
+_G.NoclipEnabled      = false
+_G.WayPoint1 = nil
+_G.WayPoint2 = nil
+_G.WayPoint3 = nil
+
+-- =========================
+-- CORE HELPER FUNCTIONS
+-- =========================
+local function safeLoop(interval, callback)
+    task.spawn(function()
+        while not _G.ScriptDestroyed do
+            local start = tick()
+            callback()
+            local elapsed = tick() - start
+            task.wait(math.max(0, interval - elapsed))
+        end
+    end)
 end
 
--- =====================
--- // MISC TAB
--- =====================
-MiscTab:CreateSection("Utilities")
+local hrp, setState, triggerSkill
+local function bind(char)
+    hrp = char:WaitForChild("HumanoidRootPart", 5)
+    local net = char:WaitForChild("NetMessage", 5)
+    if net then
+        setState    = net:WaitForChild("SetState", 5)
+        triggerSkill = net:WaitForChild("TrigerSkill", 5)
+    end
+end
+if player.Character then bind(player.Character) end
+player.CharacterAdded:Connect(bind)
 
-MiscTab:CreateButton({
-    Name = "Anti-AFK",
-    Info = "Prevents you from being kicked for inactivity.",
-    Callback = function()
-        local vu = game:GetService("VirtualUser")
-        player.Idled:Connect(function()
-            vu:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-            task.wait(1)
-            vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-        end)
-        Rayfield:Notify({ Title = "Anti-AFK", Content = "Anti-AFK is now active.", Duration = 3 })
+local entityFolder = workspace:WaitForChild("Entity")
+local fxFolder     = workspace:WaitForChild("FX")
+local sellRemote   = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("RemoteEvent")
+
+local mobs = {}
+local function updateMobs()
+    table.clear(mobs)
+    for _, mob in ipairs(entityFolder:GetChildren()) do
+        local hum  = mob:FindFirstChildOfClass("Humanoid")
+        local root = mob:FindFirstChild("HumanoidRootPart") or mob.PrimaryPart
+        if hum and root and hum.Health > 0 then
+            table.insert(mobs, {mob = mob, root = root, hum = hum})
+        end
+    end
+end
+
+-- =========================
+-- FARMING TAB INTERFACE
+-- =========================
+FarmingTab:CreateSection("Auto Combat")
+
+FarmingTab:CreateToggle({
+    Name         = "Auto Farm (Mob Pull)",
+    CurrentValue = false,
+    Flag         = "AutoFarm",
+    Callback     = function(state)
+        _G.AutoFarmEnabled = state
     end,
 })
 
-MiscTab:CreateButton({
-    Name = "Rejoin Server",
-    Callback = function()
-        game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+FarmingTab:CreateToggle({
+    Name         = "Auto Kill (Attack Engine)",
+    CurrentValue = false,
+    Flag         = "AutoKill",
+    Callback     = function(state)
+        _G.SkillRemoteEnabled = state
     end,
 })
 
-MiscTab:CreateButton({
-    Name = "Copy Discord Link",
-    Callback = function()
-        setclipboard("https://discord.gg/yourlink") -- Placeholder
-        Rayfield:Notify({ Title = "Discord", Content = "Discord link copied to clipboard!", Duration = 3 })
+FarmingTab:CreateToggle({
+    Name         = "Auto Bow Attack",
+    CurrentValue = false,
+    Flag         = "AutoBow",
+    Callback     = function(state)
+        _G.AutoBowEnabled = state
     end,
 })
 
--- =====================
--- // LOGIC ENGINE: AUTOCLICKER
--- =====================
-local function isLocalPlayer(...)
-    local args = {...}
-    for _, v in ipairs(args) do
-        if typeof(v) == "Instance" and v:IsA("Player") then
-            return v == player
-        end
-        if typeof(v) == "string" then
-            if v == player.Name or v == tostring(player.UserId) then
-                return true
-            end
-        end
-        if typeof(v) == "number" and v == player.UserId then
-            return true
-        end
-    end
-    return true
-end
+FarmingTab:CreateSection("Loot & Extras")
 
-local function findRemote(name)
-    for _, v in ipairs(ReplicatedStorage:GetDescendants()) do
-        if v:IsA("RemoteEvent") and v.Name:find(name) then
-            return v
-        end
-    end
-    return nil
-end
+FarmingTab:CreateToggle({
+    Name         = "Auto Loot (Magnet)",
+    CurrentValue = false,
+    Flag         = "AutoLoot",
+    Callback     = function(state)
+        _G.AutoLootEnabled = state
+    end,
+})
 
-task.spawn(function()
-    local throwLasso = findRemote("ThrowLasso")
-    local walkPet = findRemote("RequestWalkPet")
+FarmingTab:CreateToggle({
+    Name         = "Auto Open Chests",
+    CurrentValue = false,
+    Flag         = "AutoChest",
+    Callback     = function(state)
+        _G.AutoChestEnabled = state
+    end,
+})
 
-    if throwLasso then
-        throwLasso.OnClientEvent:Connect(function(...)
-            if autoEnabled and isLocalPlayer(...) then
-                autoclicking = true
-                clickAccum = 0
-                statusLabel:Set("Status: Clicking! 🟢")
-            end
+FarmingTab:CreateToggle({
+    Name         = "Auto Sell (Batch 1-100)",
+    CurrentValue = false,
+    Flag         = "AutoSell",
+    Callback     = function(state)
+        _G.RemoteSpamEnabled = state
+    end,
+})
+
+FarmingTab:CreateToggle({
+    Name         = "Hitbox Expander (Big Mobs)",
+    CurrentValue = false,
+    Flag         = "Hitbox",
+    Callback     = function(state)
+        _G.HitboxEnabled = state
+    end,
+})
+
+FarmingTab:CreateSection("Auto Flight & Travel")
+
+FarmingTab:CreateToggle({
+    Name         = "Start Auto Flight",
+    CurrentValue = false,
+    Flag         = "AutoFly",
+    Callback     = function(state)
+        _G.AutoFlyEnabled = state
+    end,
+})
+
+FarmingTab:CreateToggle({
+    Name         = "Enable Noclip",
+    CurrentValue = false,
+    Flag         = "Noclip",
+    Callback     = function(state)
+        _G.NoclipEnabled = state
+    end,
+})
+
+FarmingTab:CreateButton({
+    Name     = "Set Waypoint 1",
+    Info     = "Guarda posición de origen.",
+    Callback = function()
+        if hrp then _G.WayPoint1 = hrp.Position end
+        Rayfield:Notify({ Title = "Waypoint 1", Content = "Posición guardada.", Duration = 3, Image = 4483362458 })
+    end,
+})
+
+FarmingTab:CreateButton({
+    Name     = "Set Waypoint 2",
+    Info     = "Guarda posición de destino.",
+    Callback = function()
+        if hrp then _G.WayPoint2 = hrp.Position end
+        Rayfield:Notify({ Title = "Waypoint 2", Content = "Posición guardada.", Duration = 3, Image = 4483362458 })
+    end,
+})
+
+FarmingTab:CreateButton({
+    Name     = "Set Waypoint 3",
+    Info     = "Tercer punto de patrulla (Opcional).",
+    Callback = function()
+        if hrp then _G.WayPoint3 = hrp.Position end
+        Rayfield:Notify({ Title = "Waypoint 3", Content = "Posición guardada.", Duration = 3, Image = 4483362458 })
+    end,
+})
+
+FarmingTab:CreateButton({
+    Name     = "Clear All Waypoints",
+    Info     = "Resetea las posiciones guardadas.",
+    Callback = function()
+        _G.WayPoint1 = nil; _G.WayPoint2 = nil; _G.WayPoint3 = nil
+        Rayfield:Notify({ Title = "Waypoints", Content = "Todos los waypoints eliminados.", Duration = 3, Image = 4483362458 })
+    end,
+})
+
+FarmingTab:CreateSlider({
+    Name         = "Flight Height",
+    Info         = "Ajusta tu altitud de vuelo.",
+    Range        = {1, 1000},
+    Increment    = 1,
+    CurrentValue = 50,
+    Flag         = "FlyHeight",
+    Callback     = function(s)
+        Settings.FlyHeight = s
+    end,
+})
+
+FarmingTab:CreateSlider({
+    Name         = "Flight Speed",
+    Info         = "Controla la velocidad del vuelo.",
+    Range        = {1, 300},
+    Increment    = 1,
+    CurrentValue = 50,
+    Flag         = "FlySpeed",
+    Callback     = function(s)
+        Settings.FlySpeed = s
+    end,
+})
+
+-- =========================
+-- BUFFS TAB INTERFACE
+-- =========================
+BuffsTab:CreateSection("⚠️ PRESS ENTER ON TEXTBOXES TO SAVE ⚠️")
+
+BuffsTab:CreateSection("Damage Buff")
+
+BuffsTab:CreateInput({
+    Name                    = "Multiplier Value",
+    Info                    = "Press ENTER when done typing",
+    PlaceholderText         = "222222222222222.54",
+    RemoveTextAfterFocusLost = false,
+    Callback                = function(txt)
+        BuffVars.DamageValue = txt
+    end,
+})
+
+BuffsTab:CreateInput({
+    Name                    = "Duration",
+    Info                    = "Press ENTER when done typing",
+    PlaceholderText         = "12.036",
+    RemoveTextAfterFocusLost = false,
+    Callback                = function(txt)
+        BuffVars.DamageDuration = txt
+    end,
+})
+
+BuffsTab:CreateButton({
+    Name     = "Apply Damage Buff",
+    Info     = "Applies extreme damage.",
+    Callback = function()
+        local dV  = tonumber(BuffVars.DamageValue)   or 222222222222222.54
+        local dur = tonumber(BuffVars.DamageDuration) or 12.036
+        pcall(function() player.Character.NetMessage.AddBuff:FireServer(1004, {[1] = dV}, nil, dur) end)
+    end,
+})
+
+BuffsTab:CreateSection("Health Buff")
+
+BuffsTab:CreateInput({
+    Name                    = "Health Duration",
+    Info                    = "Press ENTER when done typing",
+    PlaceholderText         = "12.036",
+    RemoveTextAfterFocusLost = false,
+    Callback                = function(txt)
+        BuffVars.HealthDuration = txt
+    end,
+})
+
+BuffsTab:CreateButton({
+    Name     = "Instantly Max Health",
+    Info     = "Heals you to full health.",
+    Callback = function()
+        local dur = tonumber(BuffVars.HealthDuration) or 12.036
+        pcall(function() player.Character.NetMessage.AddBuff:FireServer(2002, {[1] = 222222222222222.54}, nil, dur) end)
+    end,
+})
+
+BuffsTab:CreateSection("Critical Buff")
+
+BuffsTab:CreateInput({
+    Name                    = "Crit Duration",
+    Info                    = "Press ENTER when done typing",
+    PlaceholderText         = "12.036",
+    RemoveTextAfterFocusLost = false,
+    Callback                = function(txt)
+        BuffVars.CritDuration = txt
+    end,
+})
+
+BuffsTab:CreateButton({
+    Name     = "Super Crit Buff",
+    Info     = "Increases crit chance to 65%.",
+    Callback = function()
+        local dur = tonumber(BuffVars.CritDuration) or 12.036
+        pcall(function() player.Character.NetMessage.AddBuff:FireServer(2010, {[1] = 223333}, nil, dur) end)
+    end,
+})
+
+BuffsTab:CreateSection("Manual Buff Tool")
+
+BuffsTab:CreateInput({
+    Name                    = "Buff ID",
+    Info                    = "Press ENTER when done typing",
+    PlaceholderText         = "1004",
+    RemoveTextAfterFocusLost = false,
+    Callback                = function(txt) BuffVars.CustomID = txt end,
+})
+
+BuffsTab:CreateInput({
+    Name                    = "Buff Value",
+    Info                    = "Press ENTER when done typing",
+    PlaceholderText         = "1",
+    RemoveTextAfterFocusLost = false,
+    Callback                = function(txt) BuffVars.CustomVal = txt end,
+})
+
+BuffsTab:CreateInput({
+    Name                    = "Buff Duration",
+    Info                    = "Press ENTER when done typing",
+    PlaceholderText         = "60",
+    RemoveTextAfterFocusLost = false,
+    Callback                = function(txt) BuffVars.CustomDur = txt end,
+})
+
+BuffsTab:CreateButton({
+    Name     = "Apply Manual Buff",
+    Info     = "Inject custom buff ID.",
+    Callback = function()
+        pcall(function()
+            player.Character.NetMessage.AddBuff:FireServer(
+                tonumber(BuffVars.CustomID),
+                {[1] = tonumber(BuffVars.CustomVal)},
+                nil,
+                tonumber(BuffVars.CustomDur)
+            )
         end)
-    end
+    end,
+})
 
-    if walkPet then
-        walkPet.OnClientEvent:Connect(function(...)
-            if isLocalPlayer(...) then
-                autoclicking = false
-                clickAccum = 0
-                statusLabel:Set("Status: Caught! ✅")
-                task.delay(2, function()
-                    if autoEnabled and not autoclicking then
-                        statusLabel:Set("Status: Waiting for lasso...")
-                    end
-                end)
+-- =========================
+-- CONFIG TAB INTERFACE
+-- =========================
+SettingsTab:CreateSection("Attack Speed Configurations")
+
+SettingsTab:CreateSlider({
+    Name         = "Attack Delay (ms)",
+    Info         = "Lower number = faster speed (drops FPS).",
+    Range        = {10, 500},
+    Increment    = 5,
+    CurrentValue = 50,
+    Flag         = "AttackDelay",
+    Callback     = function(s)
+        Settings.AttackDelay = s / 1000
+    end,
+})
+
+SettingsTab:CreateSlider({
+    Name         = "Hits Per Cycle",
+    Info         = "Amount of hits per cycle (Default 5).",
+    Range        = {1, 100},
+    Increment    = 1,
+    CurrentValue = 5,
+    Flag         = "HitsPerCycle",
+    Callback     = function(s)
+        Settings.HitsPerTarget = s
+    end,
+})
+
+SettingsTab:CreateSection("Range Configurations")
+
+SettingsTab:CreateSlider({
+    Name         = "Pull Distance",
+    Info         = "Distance at which mobs are pulled.",
+    Range        = {1, 30},
+    Increment    = 1,
+    CurrentValue = 8,
+    Flag         = "PullDist",
+    Callback     = function(s)
+        Settings.PullDistance = s
+    end,
+})
+
+SettingsTab:CreateSection("Player Configurations")
+
+SettingsTab:CreateSlider({
+    Name         = "Movement Speed",
+    Info         = "Changes your character's WalkSpeed.",
+    Range        = {16, 200},
+    Increment    = 1,
+    CurrentValue = 16,
+    Flag         = "WalkSpeed",
+    Callback     = function(s)
+        Settings.WalkSpeed = s
+    end,
+})
+
+SettingsTab:CreateSection("Emergency")
+
+SettingsTab:CreateButton({
+    Name     = "⛔ PANIC / STOP ALL",
+    Info     = "Disables auto farm and all repetitive scripts.",
+    Callback = function()
+        _G.AutoFarmEnabled    = false
+        _G.SkillRemoteEnabled = false
+        _G.AutoBowEnabled     = false
+        _G.AutoLootEnabled    = false
+        _G.RemoteSpamEnabled  = false
+        _G.AutoChestEnabled   = false
+        _G.AutoFlyEnabled     = false
+        _G.NoclipEnabled      = false
+        Rayfield:Notify({ Title = "⛔ PANIC", Content = "Todos los scripts detenidos.", Duration = 4, Image = 4483362458 })
+    end,
+})
+
+-- =========================
+-- ULTIMATE LOOPS ENGINE
+-- =========================
+
+local patrolTarget = 1
+
+-- Noclip Engine
+RunService.Stepped:Connect(function()
+    if _G.ScriptDestroyed then return end
+    if _G.NoclipEnabled and player.Character then
+        for _, v in ipairs(player.Character:GetDescendants()) do
+            if v:IsA("BasePart") and v.CanCollide then
+                v.CanCollide = false
             end
-        end)
+        end
     end
 end)
 
+-- Heartbeat Engine
 RunService.Heartbeat:Connect(function(dt)
-    if autoclicking and autoEnabled then
-        clickAccum = clickAccum + dt
-        if clickAccum >= clickInterval then
-            clickAccum = clickAccum - clickInterval
-            local mousePos = UserInputService:GetMouseLocation()
-            VirtualInputManager:SendMouseButtonEvent(mousePos.X, mousePos.Y, 0, true, game, 0)
-            VirtualInputManager:SendMouseButtonEvent(mousePos.X, mousePos.Y, 0, false, game, 0)
-        end
-    else
-        clickAccum = 0
-    end
-end)
+    if _G.ScriptDestroyed then return end
 
--- =====================
--- // LOGIC ENGINE: MOVEMENT
--- =====================
-RunService.Heartbeat:Connect(function()
-    if wsEnabled then
-        local char = player.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum and hum.WalkSpeed ~= walkSpeed then
-                hum.WalkSpeed = walkSpeed
+    -- Auto Flight Logic
+    if _G.AutoFlyEnabled and hrp and _G.WayPoint1 and _G.WayPoint2 then
+        local waypoints = {}
+        table.insert(waypoints, Vector3.new(_G.WayPoint1.X, Settings.FlyHeight, _G.WayPoint1.Z))
+        table.insert(waypoints, Vector3.new(_G.WayPoint2.X, Settings.FlyHeight, _G.WayPoint2.Z))
+        if _G.WayPoint3 then
+            table.insert(waypoints, Vector3.new(_G.WayPoint3.X, Settings.FlyHeight, _G.WayPoint3.Z))
+        end
+
+        if patrolTarget > #waypoints then patrolTarget = 1 end
+
+        local currentTarget = waypoints[patrolTarget]
+        local dist = (currentTarget - hrp.Position).Magnitude
+
+        hrp.AssemblyLinearVelocity = Vector3.zero
+
+        if dist < 5 then
+            patrolTarget = patrolTarget + 1
+            if patrolTarget > #waypoints then patrolTarget = 1 end
+        else
+            local dir    = (currentTarget - hrp.Position).Unit
+            local nextPos = hrp.Position + (dir * (Settings.FlySpeed * dt))
+            hrp.CFrame   = CFrame.lookAt(nextPos, currentTarget)
+        end
+    end
+
+    if Settings.WalkSpeed and Settings.WalkSpeed ~= 16 then
+        if player.Character then
+            local hum = player.Character:FindFirstChild("Humanoid")
+            if hum then hum.WalkSpeed = Settings.WalkSpeed end
+        end
+    end
+
+    if not _G.AutoFarmEnabled or not hrp then return end
+    local targetCF = hrp.CFrame * CFrame.new(0, 2, -Settings.PullDistance)
+    local range    = Settings.DetectionRange
+    local pPos     = hrp.Position
+    for _, data in ipairs(mobs) do
+        if data.root and data.hum.Health > 0 then
+            if (data.root.Position - pPos).Magnitude <= range then
+                data.root.CFrame = targetCF
+                data.root.AssemblyLinearVelocity = Vector3.zero
             end
         end
     end
-    
-    if noclipEnabled then
-        local char = player.Character
-        if char then
-            for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") and part.CanCollide then
-                    part.CanCollide = false
+end)
+
+-- Bow Attack Helper
+local function bow(times)
+    for i = 1, times do
+        for _, entity in ipairs(entityFolder:GetChildren()) do
+            if entity:FindFirstChild("Collision") then
+                triggerSkill:FireServer(102, "Atk", entity.Collision, {})
+            end
+        end
+    end
+end
+
+-- Main Attack Executor
+task.spawn(function()
+    while not _G.ScriptDestroyed do
+        if _G.SkillRemoteEnabled and setState and triggerSkill and hrp then
+            updateMobs()
+            local range = Settings.DetectionRange
+            local pPos  = hrp.Position
+            setState:FireServer("action", true)
+            for _, data in ipairs(mobs) do
+                if (data.root.Position - pPos).Magnitude <= range then
+                    local targetCF = data.root.CFrame
+                    for i = 1, Settings.HitsPerTarget do
+                        triggerSkill:FireServer(101, "Enter", targetCF, 1)
+                    end
+                end
+            end
+            setState:FireServer("action", false)
+        end
+        task.wait(Settings.AttackDelay)
+    end
+end)
+
+-- Bow Attack Executor
+task.spawn(function()
+    while not _G.ScriptDestroyed do
+        if _G.AutoBowEnabled and triggerSkill then
+            bow(Settings.HitsPerTarget)
+        end
+        task.wait(Settings.AttackDelay)
+    end
+end)
+
+-- Hitbox Logic
+safeLoop(0.5, function()
+    if not _G.HitboxEnabled then return end
+    local size = Vector3.new(Settings.HitboxSize, Settings.HitboxSize, Settings.HitboxSize)
+    for _, data in ipairs(mobs) do
+        if data.root and data.root.Size ~= size then
+            data.root.Size         = size
+            data.root.Transparency = 0.8
+            data.root.CanCollide   = false
+        end
+    end
+end)
+
+-- Loot Logic
+safeLoop(1, function()
+    if not _G.AutoLootEnabled or not hrp then return end
+    local range = Settings.LootRange
+    for _, fx in ipairs(fxFolder:GetChildren()) do
+        local part = fx:IsA("BasePart") and fx or fx.PrimaryPart
+        if part and (part.Position - hrp.Position).Magnitude <= range then
+            if fx:IsA("Model") then fx:PivotTo(hrp.CFrame) else fx.CFrame = hrp.CFrame end
+        end
+    end
+end)
+
+-- Chest Opening Logic
+safeLoop(1, function()
+    if not _G.AutoChestEnabled or not hrp then return end
+    local range = 800
+    for _, prompt in ipairs(workspace:GetDescendants()) do
+        if prompt:IsA("ProximityPrompt") then
+            local parent = prompt.Parent
+            local targetPos
+            if parent then
+                if parent:IsA("BasePart") then
+                    targetPos = parent.Position
+                elseif parent:IsA("Model") and parent.PrimaryPart then
+                    targetPos = parent.PrimaryPart.Position
+                end
+            end
+            if targetPos and (targetPos - hrp.Position).Magnitude <= range then
+                if type(fireproximityprompt) == "function" then
+                    prompt.MaxActivationDistance = math.huge
+                    prompt.RequiresLineOfSight   = false
+                    fireproximityprompt(prompt)
                 end
             end
         end
     end
 end)
 
-UserInputService.JumpRequest:Connect(function()
-    if infJumpEnabled then
-        local char = player.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum and hum:GetState() ~= Enum.HumanoidStateType.Dead then
-            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+-- Sell & Refresh System
+local function buildSellPayload()
+    local char      = player.Character
+    local invFolder = player:FindFirstChild("Inventory")
+                   or player:FindFirstChild("Backpack")
+                   or (char and char:FindFirstChild("Inventory"))
+
+    if invFolder then
+        local slots = {}
+        for i, _ in ipairs(invFolder:GetChildren()) do
+            table.insert(slots, i)
+        end
+        if #slots > 0 then return slots end
+    end
+
+    local fallback = table.create(100)
+    for i = 1, 100 do fallback[i] = i end
+    return fallback
+end
+
+local function doSell()
+    if not sellRemote then return end
+    local payload = buildSellPayload()
+    sellRemote:FireServer(539767613, payload)
+end
+
+task.spawn(function()
+    while not _G.ScriptDestroyed do
+        if _G.RemoteSpamEnabled then
+            doSell()
+            task.wait(1.5)
+        else
+            task.wait(0.1)
         end
     end
 end)
 
--- =====================
--- // LOGIC ENGINE: FLY
--- =====================
-local flyBodyVelocity, flyBodyGyro
-local camera = workspace.CurrentCamera
-
-function IY_startFly()
-    local char = player.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not hum then return end
-
-    hum.PlatformStand = true
-
-    flyBodyGyro = Instance.new("BodyGyro")
-    flyBodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-    flyBodyGyro.CFrame = hrp.CFrame
-    flyBodyGyro.D = 50
-    flyBodyGyro.Parent = hrp
-
-    flyBodyVelocity = Instance.new("BodyVelocity")
-    flyBodyVelocity.Velocity = Vector3.zero
-    flyBodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    flyBodyVelocity.Parent = hrp
-
-    RunService:BindToRenderStep("IYFly", Enum.RenderPriority.Camera.Value + 1, function()
-        if not flyEnabled then return end
-        local hrp2 = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if not hrp2 or not flyBodyVelocity or not flyBodyGyro then return end
-
-        local speed = flySpeed * 15
-        local cf = camera.CFrame
-        local dir = Vector3.zero
-
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + cf.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cf.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - cf.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + cf.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0, 1, 0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then dir = dir - Vector3.new(0, 1, 0) end
-
-        flyBodyGyro.CFrame = cf
-        flyBodyVelocity.Velocity = dir.Magnitude > 0 and dir.Unit * speed or Vector3.zero
-    end)
-end
-
-function IY_stopFly()
-    RunService:UnbindFromRenderStep("IYFly")
-    local char = player.Character
-    if char then
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hrp then
-            if flyBodyVelocity then flyBodyVelocity:Destroy() end
-            if flyBodyGyro then flyBodyGyro:Destroy() end
-        end
-        if hum then hum.PlatformStand = false end
-    end
-end
-
--- =====================
--- // LOGIC ENGINE: PET ESP
--- =====================
-local rarityColours = {
-    ["Common"]    = Color3.fromRGB(200, 200, 200),
-    ["Uncommon"]  = Color3.fromRGB(80, 200, 80),
-    ["Rare"]      = Color3.fromRGB(80, 120, 255),
-    ["Epic"]      = Color3.fromRGB(180, 80, 255),
-    ["Legendary"] = Color3.fromRGB(255, 200, 0),
-    ["Mythical"]  = Color3.fromRGB(255, 80, 80),
-    ["Boss"]      = Color3.fromRGB(255, 40, 180),
-    ["Exclusive"] = Color3.fromRGB(255, 215, 120),
-}
-
-local espTags = {}
-
-local function getPetRarity(model)
-    local attr = model:GetAttribute("Rarity") or model:GetAttribute("rarity")
-    if attr then return tostring(attr) end
-    local sv = model:FindFirstChild("Rarity") or model:FindFirstChild("rarity")
-    if sv and sv:IsA("StringValue") then return sv.Value end
-    for _, v in ipairs(model:GetDescendants()) do
-        if v:IsA("StringValue") then
-            for rarity, _ in pairs(rarityColours) do
-                if v.Value:lower():find(rarity:lower()) then return v.Value end
-            end
-        end
-    end
-    return nil
-end
-
-local function getPetsFolder()
-    local roaming = workspace:FindFirstChild("RoamingPets")
-    return roaming and roaming:FindFirstChild("Pets")
-end
-
-function createESPTag(obj)
-    if espTags[obj] then return end
-    local rarity = getPetRarity(obj)
-    if rarity then
-        for r, enabled in pairs(rarityFilters) do
-            if rarity:lower():find(r:lower()) and not enabled then return end
-        end
-    end
-
-    local root = (obj:IsA("Model") and obj.PrimaryPart) or obj:FindFirstChildOfClass("BasePart") or (obj:IsA("BasePart") and obj)
-    if not root then return end
-
-    local colour = Color3.fromRGB(255, 255, 255)
-    if rarity then
-        for r, col in pairs(rarityColours) do
-            if rarity:lower():find(r:lower()) then colour = col break end
-        end
-    end
-
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "PetESP"
-    billboard.Size = UDim2.new(0, 130, 0, 40)
-    billboard.StudsOffset = Vector3.new(0, 3.5, 0)
-    billboard.AlwaysOnTop = true
-    billboard.Adornee = root
-    billboard.Parent = root
-
-    local bg = Instance.new("Frame")
-    bg.Size = UDim2.new(1, 0, 1, 0)
-    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    bg.BackgroundTransparency = 0.45
-    bg.BorderSizePixel = 0
-    bg.Parent = billboard
-    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 4)
-
-    local txt = Instance.new("TextLabel")
-    txt.Size = UDim2.new(1, 0, 1, 0)
-    txt.BackgroundTransparency = 1
-    txt.Text = rarity and (obj.Name .. "\n[" .. rarity .. "]") or obj.Name
-    txt.TextColor3 = colour
-    txt.Font = Enum.Font.GothamBold
-    txt.TextSize = 11
-    txt.Parent = bg
-
-    espTags[obj] = billboard
-end
-
-function clearAllESP()
-    for obj, tag in pairs(espTags) do
-        if tag then tag:Destroy() end
-        espTags[obj] = nil
-    end
-end
-
-function scanAndTag()
-    local folder = getPetsFolder()
-    if not folder then return end
-    for _, obj in ipairs(folder:GetChildren()) do
-        createESPTag(obj)
-    end
-end
-
-local espConnection
-function startESP()
-    scanAndTag()
-    local folder = getPetsFolder()
-    if folder then
-        espConnection = folder.ChildAdded:Connect(function(obj)
-            task.wait(0.1)
-            createESPTag(obj)
-        end)
-    end
-    task.spawn(function()
-        while espEnabled do
-            task.wait(2)
-            if espEnabled then scanAndTag() end
-        end
-    end)
-end
-
-function stopESP()
-    if espConnection then espConnection:Disconnect() end
-    clearAllESP()
-end
-
-Rayfield:Notify({
-    Title = "Script Loaded",
-    Content = "The UI has been successfully updated to Rayfield.",
-    Duration = 5,
-    Image = 4483362458,
-})
+safeLoop(30, function()
+    updateMobs()
+end)
