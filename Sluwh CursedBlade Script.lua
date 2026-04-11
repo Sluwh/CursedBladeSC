@@ -1,7 +1,8 @@
+--[[
     CATCH AND TAME! - RAYFIELD EDITION
     Author: Sluwh
     UI Library: Rayfield
-
+]]
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
