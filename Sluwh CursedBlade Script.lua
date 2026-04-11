@@ -38,6 +38,7 @@ local Window = Rayfield:CreateWindow({
 -- =========================
 local FarmingTab = Window:CreateTab("Farming", 4483362458)
 local BuffsTab   = Window:CreateTab("Buffs",   4483362458)
+local VisualsTab = Window:CreateTab("Visuals", 4483362458)
 local SettingsTab = Window:CreateTab("Config", 4483362458)
 
 -- =========================
@@ -60,6 +61,15 @@ local BuffVars = {
     DamageDuration = "12.036",
     HealthDuration = "12.036",
     CritDuration   = "12.036",
+    -- New Buffs
+    FrostVal = "1", FrostDur = "60",
+    FireVal  = "1", FireDur  = "60",
+    LightVal = "1", LightDur = "60",
+    PiercVal = "1", PiercDur = "60",
+    MultiVal = "1", MultiDur = "60",
+    VolleVal = "1", VolleDur = "60",
+    ExperVal = "1", ExperDur = "60",
+    SwiftVal = "1", SwiftDur = "60",
     CustomID  = "1004",
     CustomVal = "1",
     CustomDur = "60"
@@ -75,6 +85,7 @@ _G.AutoChestEnabled   = false
 _G.AutoFlyEnabled     = false
 _G.AutoBowEnabled     = false
 _G.NoclipEnabled      = false
+_G.MobESPEnabled      = false
 _G.WayPoint1 = nil
 _G.WayPoint2 = nil
 _G.WayPoint3 = nil
@@ -106,6 +117,49 @@ if player.Character then bind(player.Character) end
 player.CharacterAdded:Connect(bind)
 
 local entityFolder = workspace:WaitForChild("Entity")
+
+-- ESP Handler Logic
+local esps = {}
+local function createESP(model)
+    if not model:IsA("Model") or esps[model] then return end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "SluwhESP"
+    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Adornee = model
+    highlight.Enabled = _G.MobESPEnabled
+    highlight.Parent = model
+    
+    esps[model] = highlight
+end
+
+local function removeESP(model)
+    if esps[model] then
+        esps[model]:Destroy()
+        esps[model] = nil
+    end
+end
+
+local function updateESPVisibility()
+    for _, highlight in pairs(esps) do
+        highlight.Enabled = _G.MobESPEnabled
+    end
+end
+
+entityFolder.ChildAdded:Connect(function(child)
+    task.wait(0.5) -- Wait for model to fully manifest
+    createESP(child)
+end)
+
+entityFolder.ChildRemoved:Connect(removeESP)
+
+for _, child in ipairs(entityFolder:GetChildren()) do
+    createESP(child)
+end
+
 local fxFolder     = workspace:WaitForChild("FX")
 local sellRemote   = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("RemoteEvent")
 
@@ -272,6 +326,21 @@ FarmingTab:CreateSlider({
 })
 
 -- =========================
+-- VISUALS TAB INTERFACE
+-- =========================
+VisualsTab:CreateSection("ESP Mobs")
+
+VisualsTab:CreateToggle({
+    Name         = "Enable Mob ESP",
+    CurrentValue = false,
+    Flag         = "MobESP",
+    Callback     = function(state)
+        _G.MobESPEnabled = state
+        updateESPVisibility()
+    end,
+})
+
+-- =========================
 -- BUFFS TAB INTERFACE
 -- =========================
 BuffsTab:CreateSection("⚠️ PRESS ENTER ON TEXTBOXES TO SAVE ⚠️")
@@ -349,6 +418,80 @@ BuffsTab:CreateButton({
         pcall(function() player.Character.NetMessage.AddBuff:FireServer(2010, {[1] = 223333}, nil, dur) end)
     end,
 })
+
+BuffsTab:CreateSection("Arrow Buffs")
+
+local arrowBuffs = {
+    {Name = "Frost Arrow",     ID = 1010, ValKey = "FrostVal", DurKey = "FrostDur"},
+    {Name = "Fire Arrow",      ID = 1011, ValKey = "FireVal",  DurKey = "FireDur"},
+    {Name = "Lightning Arrow", ID = 1012, ValKey = "LightVal", DurKey = "LightDur"},
+    {Name = "Piercing Arrow",  ID = 1013, ValKey = "PiercVal", DurKey = "PiercDur"},
+    {Name = "Multi-Strike",    ID = 1014, ValKey = "MultiVal", DurKey = "MultiDur"},
+    {Name = "Volley Barrage",  ID = 1017, ValKey = "VolleVal", DurKey = "VolleDur"},
+}
+
+for _, buff in ipairs(arrowBuffs) do
+    BuffsTab:CreateInput({
+        Name                    = buff.Name .. " Multiplier",
+        PlaceholderText         = "1",
+        RemoveTextAfterFocusLost = false,
+        Callback                = function(txt) BuffVars[buff.ValKey] = txt end,
+    })
+    BuffsTab:CreateInput({
+        Name                    = buff.Name .. " Duration",
+        PlaceholderText         = "60",
+        RemoveTextAfterFocusLost = false,
+        Callback                = function(txt) BuffVars[buff.DurKey] = txt end,
+    })
+    BuffsTab:CreateButton({
+        Name     = "Apply " .. buff.Name,
+        Callback = function()
+            pcall(function() 
+                player.Character.NetMessage.AddBuff:FireServer(
+                    buff.ID, 
+                    {[1] = tonumber(BuffVars[buff.ValKey]) or 1}, 
+                    nil, 
+                    tonumber(BuffVars[buff.DurKey]) or 60
+                ) 
+            end)
+        end,
+    })
+end
+
+BuffsTab:CreateSection("Utility Buffs")
+
+local utilityBuffs = {
+    {Name = "Expertise", ID = 2004, ValKey = "ExperVal", DurKey = "ExperDur"},
+    {Name = "Swiftness", ID = 2015, ValKey = "SwiftVal", DurKey = "SwiftDur"},
+}
+
+for _, buff in ipairs(utilityBuffs) do
+    BuffsTab:CreateInput({
+        Name                    = buff.Name .. " Value",
+        PlaceholderText         = "1",
+        RemoveTextAfterFocusLost = false,
+        Callback                = function(txt) BuffVars[buff.ValKey] = txt end,
+    })
+    BuffsTab:CreateInput({
+        Name                    = buff.Name .. " Duration",
+        PlaceholderText         = "60",
+        RemoveTextAfterFocusLost = false,
+        Callback                = function(txt) BuffVars[buff.DurKey] = txt end,
+    })
+    BuffsTab:CreateButton({
+        Name     = "Apply " .. buff.Name,
+        Callback = function()
+            pcall(function() 
+                player.Character.NetMessage.AddBuff:FireServer(
+                    buff.ID, 
+                    {[1] = tonumber(BuffVars[buff.ValKey]) or 1}, 
+                    nil, 
+                    tonumber(BuffVars[buff.DurKey]) or 60
+                ) 
+            end)
+        end,
+    })
+end
 
 BuffsTab:CreateSection("Manual Buff Tool")
 
